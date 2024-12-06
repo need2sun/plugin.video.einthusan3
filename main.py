@@ -37,7 +37,7 @@ def addLog(message, level="notice"):
         xbmc.log(str(message), level=xbmc.LOGINFO)
 
 
-def addDir(name, url, mode, image, lang="", description="", isplayable=False):
+def addDir(name, url, mode, image, lang="", description="", isplayable=False, year=None):
     u = (
         sys.argv[0]
         + "?url="
@@ -55,7 +55,12 @@ def addDir(name, url, mode, image, lang="", description="", isplayable=False):
     listitem = xbmcgui.ListItem(name)
     thumbnailImage = image
     listitem.setArt({"icon": "DefaultFolder.png", "thumb": thumbnailImage})
-    listitem.setInfo(type="Video", infoLabels={"Title": name, "Plot": description})
+    
+    infotag = listitem.getVideoInfoTag()
+    infotag.setTitle(name)
+    if year != None:
+        infotag.setYear(int(year))
+    infotag.setPlot(description)
     listitem.setProperty("IsPlayable", "true")
     isfolder = True
     if isplayable:
@@ -303,6 +308,7 @@ def list_videos(url, pattern):
             video_item[0],
             video_item[5],
             isplayable=True,
+            year=video_item[7]
         )
 
         if video_item[3] == "uhd":
@@ -323,6 +329,7 @@ def list_videos(url, pattern):
                 video_item[0],
                 video_item[5],
                 isplayable=True,
+                year=video_item[7]
             )
 
     if video_list[-1][6] != "":
@@ -338,7 +345,7 @@ def scrape_videos(url, pattern):
     if pattern == "home":
         regexstr = 'name="newrelease_tab".+?img src="(.+?)".+?href="\/movie\/watch\/(.+?)\/\?lang=(.+?)"><h2>(.+?)<\/h2>.+?i class=(.+?)<\/div>'
     else:
-        regexstr = '<div class="block1">.*?href=".*?watch\/(.*?)\/\?lang=(.*?)".*?<img src="(.+?)".+?<h3>(.+?)<\/h3>.+?i class(.+?)<p class=".*?synopsis">(.+?)<\/p>.+?<span>Wiki<'
+        regexstr = '<div class="block1">.*?href=".*?watch\/(.*?)\/\?lang=(.*?)".*?<img src="(.+?)".+?<h3>(.+?)<\/h3>.+?<div class="info"><p>(\d+).+?i class(.+?)<p class=".*?synopsis">(.+?)<\/p>.+?<span>Wiki<'
     video_matches = re.findall(regexstr, html1)
     next_matches = re.findall('data-disabled="([^"]*)" href="(.+?)"', html1)
     if len(next_matches) > 0 and next_matches[-1][0] != "true":
@@ -347,8 +354,9 @@ def scrape_videos(url, pattern):
         movie_name = str(
             item[3].replace(",", "").encode("ascii", "ignore").decode("ascii")
         )
+        movie_year = item[4]
         movie_def = "shd"
-        if "ultrahd" in item[4]:
+        if "ultrahd" in item[5]:
             movie_def = "uhd"
         if pattern == "home":
             image = item[0]
@@ -360,7 +368,7 @@ def scrape_videos(url, pattern):
             lang = item[1]
             image = item[2]
             try:
-                description = item[5].encode("ascii", "ignore").decode("ascii")
+                description = item[6].encode("ascii", "ignore").decode("ascii")
             except:
                 description = ""
         results.append(
@@ -372,6 +380,7 @@ def scrape_videos(url, pattern):
                 str(image),
                 str(description),
                 str(next_page),
+		movie_year
             )
         )
     return results
